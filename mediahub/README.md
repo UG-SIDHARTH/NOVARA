@@ -11,8 +11,11 @@ Optimized to run on low-resource virtual private servers (VPS), e.g., Debian VPS
 - 🌌 **Premium UI/UX**: Futuristic dark theme with animated radial gradient background blobs, glowing buttons, and full responsive support for mobile screens.
 - ⚡ **Platform Auto-Detection**: Enter any URL and let the backend automatically resolve metadata details (uploader, duration, upload date, and thumbnail).
 - 💿 **Format Quality Selection**:
-  - **Video**: MP4 360p, MP4 720p, or Best Available.
-  - **Audio**: MP3 128 kbps, MP3 320 kbps, or M4A (processes conversion automatically via FFmpeg).
+  - **Video**: MP4 144p to 4K (Ultra HD), including 60fps variants (e.g. 720p60, 1080p60, 1440p60, 4K60).
+  - **Audio**: MP3 64 kbps, MP3 128 kbps, MP3 320 kbps, or M4A (processes conversion automatically via FFmpeg).
+- 🗜️ **Advanced Processing**:
+  - **Heavy Compression**: Toggle H.265/HEVC encoding via FFmpeg to drastically reduce file sizes.
+  - **Zip Output**: Package downloads into `.zip` archives on-the-fly.
 - 🔒 **Sandbox Security**:
   - Helmet security headers and CORS enabled.
   - Rate limiting to block brute force or Denial-of-Service attempts.

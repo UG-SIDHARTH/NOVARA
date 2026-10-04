@@ -13,6 +13,7 @@ services:
     volumes:
       - ./backend/downloads:/app/downloads
       - ./backend/cookies:/app/cookies
+      - ./backend/history.json:/app/history.json
     environment:
       - NODE_ENV=production
       - PORT=5000
