@@ -326,7 +326,7 @@ async function fetchMetadata(url) {
 /**
  * Downloads a video/audio using yt-dlp, and returns path/size.
  * @param {string} url - Target URL
- * @param {string} format - Format selection (mp4-360, mp4-720, mp4-best, mp3-128, mp3-320, m4a)
+ * @param {string} format - Format selection
  * @param {string} fileUuid - UUID generated for filename
  * @returns {Promise<{filePath: string, filename: string, size: number}>}
  */
@@ -454,8 +454,8 @@ async function downloadMedia(url, format, fileUuid) {
     }
   } else {
     // Non-Instagram Cobalt strategy
-    // Skip Cobalt for 1080p and 4K because public Cobalt instances limit resolution to 720p max
-    const isHighQuality = format === 'mp4-1080' || format === 'mp4-4k';
+    // Skip Cobalt for formats >= 1080p or 60fps because public Cobalt instances limit resolution and framerate
+    const isHighQuality = ['1080', '1440', '4k', 'p60', 'k60'].some(key => format.includes(key));
 
     if (!isHighQuality) {
       const COBALT_APIS = [
@@ -469,12 +469,18 @@ async function downloadMedia(url, format, fileUuid) {
         filenameStyle: 'basic'
       };
 
-      if (format === 'mp4-360') {
+      if (format === 'mp4-144') {
+        cobaltOptions.videoQuality = '144';
+      } else if (format === 'mp4-360') {
         cobaltOptions.videoQuality = '360';
       } else if (format === 'mp4-720') {
         cobaltOptions.videoQuality = '720';
       } else if (format === 'mp4-best') {
         cobaltOptions.videoQuality = 'max';
+      } else if (format === 'mp3-64') {
+        cobaltOptions.downloadMode = 'audio';
+        cobaltOptions.audioFormat = 'mp3';
+        cobaltOptions.audioBitrate = '64';
       } else if (format === 'mp3-128') {
         cobaltOptions.downloadMode = 'audio';
         cobaltOptions.audioFormat = 'mp3';
@@ -560,26 +566,53 @@ async function downloadMedia(url, format, fileUuid) {
 
   let ext = 'mp4';
 
-  if (format === 'mp4-360') {
+  if (format === 'mp4-144') {
+    args.push('-f', 'bestvideo[height<=144]+bestaudio/best[height<=144]/best');
+    args.push('--merge-output-format', 'mp4');
+    ext = 'mp4';
+  } else if (format === 'mp4-360') {
     args.push('-f', 'bestvideo[height<=360]+bestaudio/best[height<=360]/best');
     args.push('--merge-output-format', 'mp4');
     ext = 'mp4';
   } else if (format === 'mp4-720') {
-    args.push('-f', 'bestvideo[height<=720]+bestaudio/best[height<=720]/best');
+    args.push('-f', 'bestvideo[height<=720][fps<=30]+bestaudio/bestvideo[height<=720]+bestaudio/best[height<=720]/best');
+    args.push('--merge-output-format', 'mp4');
+    ext = 'mp4';
+  } else if (format === 'mp4-720p60') {
+    args.push('-f', 'bestvideo[height<=720][fps>30]+bestaudio/bestvideo[height<=720]+bestaudio/best[height<=720]/best');
     args.push('--merge-output-format', 'mp4');
     ext = 'mp4';
   } else if (format === 'mp4-1080') {
-    args.push('-f', 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best');
+    args.push('-f', 'bestvideo[height<=1080][fps<=30]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best');
+    args.push('--merge-output-format', 'mp4');
+    ext = 'mp4';
+  } else if (format === 'mp4-1080p60') {
+    args.push('-f', 'bestvideo[height<=1080][fps>30]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best');
+    args.push('--merge-output-format', 'mp4');
+    ext = 'mp4';
+  } else if (format === 'mp4-1440') {
+    args.push('-f', 'bestvideo[height<=1440][fps<=30]+bestaudio/bestvideo[height<=1440]+bestaudio/best[height<=1440]/best');
+    args.push('--merge-output-format', 'mp4');
+    ext = 'mp4';
+  } else if (format === 'mp4-1440p60') {
+    args.push('-f', 'bestvideo[height<=1440][fps>30]+bestaudio/bestvideo[height<=1440]+bestaudio/best[height<=1440]/best');
     args.push('--merge-output-format', 'mp4');
     ext = 'mp4';
   } else if (format === 'mp4-4k') {
-    args.push('-f', 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/best');
+    args.push('-f', 'bestvideo[height<=2160][fps<=30]+bestaudio/bestvideo[height<=2160]+bestaudio/best[height<=2160]/best');
+    args.push('--merge-output-format', 'mp4');
+    ext = 'mp4';
+  } else if (format === 'mp4-4k60') {
+    args.push('-f', 'bestvideo[height<=2160][fps>30]+bestaudio/bestvideo[height<=2160]+bestaudio/best[height<=2160]/best');
     args.push('--merge-output-format', 'mp4');
     ext = 'mp4';
   } else if (format === 'mp4-best') {
     args.push('-f', 'bestvideo+bestaudio/best');
     args.push('--merge-output-format', 'mp4');
     ext = 'mp4';
+  } else if (format === 'mp3-64') {
+    args.push('-x', '--audio-format', 'mp3', '--audio-quality', '64K');
+    ext = 'mp3';
   } else if (format === 'mp3-128') {
     args.push('-x', '--audio-format', 'mp3', '--audio-quality', '128K');
     ext = 'mp3';

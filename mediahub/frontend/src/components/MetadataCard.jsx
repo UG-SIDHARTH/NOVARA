@@ -3,11 +3,18 @@ import { Play, Download, Music, Video, Calendar, User, Clock, Loader2, CheckCirc
 
 // Format selection mappings
 const FORMAT_LABELS = {
+  'mp4-144': 'MP4 144p (Lowest)',
   'mp4-360': 'MP4 360p (Low)',
   'mp4-720': 'MP4 720p (HD)',
+  'mp4-720p60': 'MP4 720p60 (HD)',
   'mp4-1080': 'MP4 1080p (Full HD)',
+  'mp4-1080p60': 'MP4 1080p60 (Full HD)',
+  'mp4-1440': 'MP4 1440p (2K)',
+  'mp4-1440p60': 'MP4 1440p60 (2K)',
   'mp4-4k': 'MP4 4K (Ultra HD)',
+  'mp4-4k60': 'MP4 4K60 (Ultra HD)',
   'mp4-best': 'Best Available Video',
+  'mp3-64': 'MP3 64 kbps',
   'mp3-128': 'MP3 128 kbps',
   'mp3-320': 'MP3 320 kbps',
   'm4a': 'M4A Standard Audio',
@@ -29,6 +36,8 @@ function formatDuration(seconds) {
 export default function MetadataCard({ metadata, onDownload, isDownloading, downloadSuccess, onCancelDownload }) {
   const [activeTab, setActiveTab] = useState('video'); // 'video' | 'audio' | 'image'
   const [selectedFormat, setSelectedFormat] = useState('mp4-720'); // default select
+  const [heavyCompression, setHeavyCompression] = useState(false);
+  const [zipOutput, setZipOutput] = useState(false);
 
   const url = (metadata.originalUrl || '').toLowerCase();
   
@@ -87,21 +96,30 @@ export default function MetadataCard({ metadata, onDownload, isDownloading, down
   };
 
   const handleDownloadClick = () => {
-    onDownload(selectedFormat);
+    onDownload(selectedFormat, { heavyCompression, zipOutput });
   };
 
   const availableRes = metadata.availableResolutions || [];
-  const videoFormats = ['mp4-360'];
+  const videoFormats = ['mp4-144', 'mp4-360'];
   if (availableRes.length === 0) {
-    videoFormats.push('mp4-720', 'mp4-best');
+    videoFormats.push('mp4-720', 'mp4-720p60', 'mp4-best');
   } else {
-    if (availableRes.some(h => h >= 720)) videoFormats.push('mp4-720');
-    if (availableRes.some(h => h >= 1080)) videoFormats.push('mp4-1080');
-    if (availableRes.some(h => h >= 2160)) videoFormats.push('mp4-4k');
+    if (availableRes.some(h => h >= 720)) {
+      videoFormats.push('mp4-720', 'mp4-720p60');
+    }
+    if (availableRes.some(h => h >= 1080)) {
+      videoFormats.push('mp4-1080', 'mp4-1080p60');
+    }
+    if (availableRes.some(h => h >= 1440)) {
+      videoFormats.push('mp4-1440', 'mp4-1440p60');
+    }
+    if (availableRes.some(h => h >= 2160)) {
+      videoFormats.push('mp4-4k', 'mp4-4k60');
+    }
     videoFormats.push('mp4-best');
   }
 
-  const audioFormats = ['mp3-128', 'mp3-320', 'm4a'];
+  const audioFormats = ['mp3-64', 'mp3-128', 'mp3-320', 'm4a'];
   const imageFormats = ['photo'];
 
   return (
@@ -235,6 +253,32 @@ export default function MetadataCard({ metadata, onDownload, isDownloading, down
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Additional Options */}
+          {!isPhoto && (
+            <div className="flex flex-col sm:flex-row gap-4 mt-2">
+              <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-sm">
+                <input
+                  type="checkbox"
+                  checked={heavyCompression}
+                  onChange={(e) => setHeavyCompression(e.target.checked)}
+                  disabled={isDownloading || activeTab === 'image'}
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-accent-cyan focus:ring-accent-cyan/50"
+                />
+                Heavy Compression (H.265)
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-sm">
+                <input
+                  type="checkbox"
+                  checked={zipOutput}
+                  onChange={(e) => setZipOutput(e.target.checked)}
+                  disabled={isDownloading}
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-accent-cyan focus:ring-accent-cyan/50"
+                />
+                Zip Output (.zip)
+              </label>
             </div>
           )}
 

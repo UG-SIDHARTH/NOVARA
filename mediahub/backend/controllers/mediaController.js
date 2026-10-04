@@ -1,12 +1,15 @@
+const fs = require('fs');
+const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { isValidUrl } = require('../utils/validator');
 const { generateUuidFilename } = require('../utils/filename');
 const { downloadQueue } = require('../utils/queue');
 const ytDlpService = require('../services/ytDlpService');
 const historyService = require('../services/historyService');
+const compressionService = require('../services/compressionService');
 
 // Valid formats array
-const VALID_FORMATS = ['mp4-360', 'mp4-720', 'mp4-1080', 'mp4-4k', 'mp4-best', 'mp3-128', 'mp3-320', 'm4a', 'photo'];
+const VALID_FORMATS = ['mp4-144', 'mp4-360', 'mp4-720', 'mp4-720p60', 'mp4-1080', 'mp4-1080p60', 'mp4-1440', 'mp4-1440p60', 'mp4-4k', 'mp4-4k60', 'mp4-best', 'mp3-64', 'mp3-128', 'mp3-320', 'm4a', 'photo'];
 
 /**
  * Handles GET /health
@@ -51,7 +54,7 @@ async function download(req, res) {
   req.setTimeout(10 * 60 * 1000);
   res.setTimeout(10 * 60 * 1000);
 
-  const { url, format } = req.body;
+  const { url, format, heavyCompression, zipOutput } = req.body;
 
   if (!isValidUrl(url)) {
     return res.status(400).json({
@@ -95,9 +98,23 @@ async function download(req, res) {
       const metadata = await ytDlpService.fetchMetadata(url);
 
       // 2. Perform the download & convert via ytDlpService
-      const downloadResult = await ytDlpService.downloadMedia(url, format, downloadId);
+      let downloadResult = await ytDlpService.downloadMedia(url, format, downloadId);
+      
+      let finalFilePath = downloadResult.filePath;
+      
+      // 3. Apply post-processing if requested
+      if (heavyCompression) {
+        finalFilePath = await compressionService.applyHeavyCompression(finalFilePath, downloadId);
+      }
+      
+      if (zipOutput) {
+        finalFilePath = await compressionService.createZipArchive(finalFilePath, downloadId);
+      }
+      
+      const finalFilename = path.basename(finalFilePath);
+      const finalStats = fs.statSync(finalFilePath);
 
-      // 3. Add record to download history
+      // 4. Add record to download history
       const historyItem = historyService.addToHistory({
         id: downloadId,
         url,
@@ -106,14 +123,14 @@ async function download(req, res) {
         duration: metadata.duration,
         thumbnail: metadata.thumbnail,
         format,
-        filename: downloadResult.filename,
+        filename: finalFilename,
         status: 'completed',
-        size: downloadResult.size
+        size: finalStats.size
       });
 
       return {
-        downloadUrl: `/downloads/${downloadResult.filename}`,
-        filename: downloadResult.filename
+        downloadUrl: `/downloads/${finalFilename}`,
+        filename: finalFilename
       };
     }, downloadId);
 

@@ -91,7 +91,7 @@ export default function App() {
   };
 
   // Handle Download Request
-  const handleDownload = async (format) => {
+  const handleDownload = async (format, options = {}) => {
     if (!url.trim()) return;
 
     setIsDownloading(true);
@@ -106,7 +106,7 @@ export default function App() {
       const res = await fetch(getApiUrl('/api/download'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim(), format }),
+        body: JSON.stringify({ url: url.trim(), format, ...options }),
         signal: controller.signal
       });
 
